@@ -1,0 +1,57 @@
+{
+  "climate": "Chennai, hot-humid; TMYx weather",
+  "period_days": 3.0,
+  "envelope": {
+    "roof": "uninsulated 150 mm RCC + 40 mm screed, solar absorptance 0.75, U ~ 3.0 W/m2K",
+    "walls": "230 mm brick + plaster, U ~ 2.0 W/m2K",
+    "glazing": "single clear, U 5.8 W/m2K, SHGC 0.82",
+    "roof_area_m2": 240,
+    "peak_solar_w_m2": 891
+  },
+  "energy_kwh": {
+    "baseline_total": 780.0,
+    "ai_controlled_total": 737.0,
+    "ai_hvac": 517.3,
+    "ai_cooling": 416.2,
+    "ai_fans": 101.2,
+    "ai_lights_and_plug": 219.7,
+    "control_saving_pct": 5.52
+  },
+  "peak_demand_w": 17306,
+  "comfort": {
+    "mean_abs_pmv_occupied": 0.92,
+    "worst_co2_ppm": 1043,
+    "pmv_exceedance_zone_hours": 0.0
+  },
+  "zones": [
+    {
+      "zone": "OFFICE",
+      "mean_temp_occupied_c": 25.68,
+      "max_temp_c": 30.0,
+      "mean_pmv_occupied": 0.51,
+      "peak_cooling_w": 9801,
+      "cooling_kwh": 355.6
+    },
+    {
+      "zone": "PROD_HALL",
+      "mean_temp_occupied_c": 25.93,
+      "max_temp_c": 30.0,
+      "mean_pmv_occupied": 1.21,
+      "peak_cooling_w": 15502,
+      "cooling_kwh": 615.4
+    },
+    {
+      "zone": "PACK_STORE",
+      "mean_temp_occupied_c": 25.57,
+      "max_temp_c": 30.0,
+      "mean_pmv_occupied": 0.99,
+      "peak_cooling_w": 8845,
+      "cooling_kwh": 360.8
+    }
+  ],
+  "observations": [
+    "Cooling dominates; there is no heating load in this climate.",
+    "Mean radiant temperature is pulled up by the uninsulated roof slab, which is why PMV reads warm even when air temperature is at set-point \u2014 this limits how far set-points can be relaxed by control alone.",
+    "Outdoor air is hot and humid, so its latent load is a large share of cooling."
+  ]
+}

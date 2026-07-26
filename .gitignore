@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Vendored EnergyPlus install (208 MB — install with scripts/install_energyplus.sh)
+vendor/
+
+# Run outputs. One curated example run IS committed, so a fresh clone can open
+# the dashboard and read real results without running anything.
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/example_submission/
+!artifacts/example_submission/**
+
+# OS
+.DS_Store

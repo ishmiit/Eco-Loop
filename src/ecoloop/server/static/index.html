@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eco-Loop Building Agents</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="mark" aria-hidden="true">E</div>
+    <div>
+      <div class="brand">Eco-Loop</div>
+      <div class="footnote">Autonomous building agents</div>
+    </div>
+    <div class="spacer"></div>
+    <span class="pill idle" id="engine-pill">checking environment</span>
+    <span class="pill idle" id="llm-pill">LLM</span>
+    <button class="btn btn-quiet btn-xs" id="theme-toggle" type="button" aria-label="Switch colour theme">Theme</button>
+  </header>
+
+  <h1 class="large-title" style="margin:6px 0 10px;max-width:24ch;text-wrap:balance;">
+    Closed-loop control of a food premises
+</h1>
+  <p class="callout" style="color:var(--label-2);max-width:66ch;margin:0 0 8px;">
+    EnergyPlus streams zone temperature, humidity, CO<sub>2</sub>, occupancy and Fanger PMV to an
+    open-source LLM every 15 simulated minutes. The model reasons against comfort, tariff and grid
+    carbon targets, then writes set-points straight back into the running simulation.
+  </p>
+
+  <!-- ------------------------------------------------------- run controls -->
+  <section class="section">
+    <div class="card">
+      <div class="controls">
+        <div class="field" style="min-width:150px">
+          <label for="in-brain">Brain</label>
+          <select id="in-brain">
+            <option value="llm" selected>Open-source LLM</option>
+            <option value="heuristic">Deterministic rules</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:120px">
+          <label for="in-days">Days</label>
+          <select id="in-days">
+            <option value="1">1 day</option>
+            <option value="2" selected>2 days</option>
+            <option value="3">3 days</option>
+            <option value="7">7 days</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:150px">
+          <label for="in-interval">Decision every</label>
+          <select id="in-interval">
+            <option value="15">15 min</option>
+            <option value="30" selected>30 min</option>
+            <option value="60">60 min</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:150px">
+          <label for="in-pace">Pacing</label>
+          <select id="in-pace">
+            <option value="0" selected>As fast as possible</option>
+            <option value="0.05">0.05 s / timestep</option>
+            <option value="0.15">0.15 s / timestep</option>
+          </select>
+        </div>
+        <div style="flex:1 1 auto"></div>
+        <button class="btn btn-primary" id="btn-start" type="button">Start run</button>
+        <button class="btn btn-secondary btn-sm hidden" id="btn-stop" type="button">Stop</button>
+      </div>
+      <div style="margin-top:18px;display:grid;gap:8px">
+        <div class="progress"><span id="progress-bar"></span></div>
+        <div class="footnote" id="run-status">Pick a configuration and start a run, or load a finished one below.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------- runs -->
+  <section class="section" id="runs-section">
+    <div class="section-head">
+      <span class="caption">Completed runs</span>
+      <span class="footnote" id="runs-count"></span>
+    </div>
+    <div class="list" id="runs-list">
+      <div class="empty">No runs yet.</div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------- live ticker -->
+  <section class="section hidden" id="live-section">
+    <div class="section-head"><span class="caption">Live from the simulation</span>
+      <span class="footnote" id="live-clock"></span></div>
+    <div class="tiles" id="live-tiles"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------- headline -->
+  <section class="section hidden" id="result-section">
+    <div class="card-graphite hero">
+      <div>
+        <div class="caption">Electricity saved vs rule-based baseline</div>
+        <div class="hero-figure">
+          <span class="hero-number" id="hero-pct">—</span><span class="hero-unit">%</span>
+        </div>
+        <div class="hero-caption footnote" id="hero-sub">awaiting a completed run</div>
+      </div>
+      <div class="hero-side">
+        <div class="hero-row"><span class="label">HVAC electricity</span><span class="value" id="hero-hvac">—</span></div>
+        <div class="hero-row"><span class="label">Cost</span><span class="value" id="hero-cost">—</span></div>
+        <div class="hero-row"><span class="label">Carbon</span><span class="value" id="hero-carbon">—</span></div>
+        <div class="hero-row"><span class="label">Peak demand</span><span class="value" id="hero-peak">—</span></div>
+        <div class="hero-row"><span class="label">Comfort</span><span class="value" id="hero-comfort">—</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- -------------------------------------------------------------- KPIs -->
+  <section class="section hidden" id="kpi-section">
+    <div class="section-head"><span class="caption">Where the energy went</span></div>
+    <div class="tiles" id="kpi-tiles"></div>
+  </section>
+
+  <!-- ------------------------------------------------------------ charts -->
+  <section class="section hidden" id="charts-section">
+    <div class="section-head">
+      <span class="caption">Baseline vs AI closed loop</span>
+      <span class="footnote">Titanium dashed = baseline · graphite solid = AI</span>
+    </div>
+    <div class="chart-grid" id="charts"></div>
+  </section>
+
+  <!-- ----------------------------------------------------- comfort table -->
+  <section class="section hidden" id="comfort-section">
+    <div class="section-head"><span class="caption">Comfort and air quality — the constraint side of the ledger</span></div>
+    <div class="card" style="padding:8px 10px">
+      <div style="overflow-x:auto"><table class="data" id="comfort-table"></table></div>
+    </div>
+    <div class="note" style="margin-top:14px" id="comfort-note"></div>
+  </section>
+
+  <!-- ------------------------------------------------------ agent detail -->
+  <section class="section hidden" id="agent-section">
+    <div class="section-head">
+      <span class="caption">Agent decisions — tap a row for the full reasoning</span>
+      <span class="footnote" id="agent-meta"></span>
+    </div>
+    <div class="list feed" id="decision-feed"></div>
+  </section>
+
+  <!-- -------------------------------------------------------- ECM report -->
+  <section class="section hidden" id="ecm-section">
+    <div class="section-head"><span class="caption">Phase B — the agent rewrote the building model</span></div>
+    <div class="list" id="ecm-list"></div>
+  </section>
+
+  <!-- --------------------------------------------------------- artifacts -->
+  <section class="section hidden" id="artifact-section">
+    <div class="section-head"><span class="caption">Deliverables from this run</span></div>
+    <div class="list" id="artifact-list"></div>
+  </section>
+
+  <footer class="section footnote" style="border-top:0.5px solid var(--separator);padding-top:18px">
+    Eco-Loop Building Agents · EnergyPlus + open-source LLM over MCP tools ·
+    <span id="footer-env" class="mono"></span>
+  </footer>
+</div>
+
+<!-- ------------------------------------------------------------ slide-over -->
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1">
+  <div class="sheet-head">
+    <div style="min-width:0">
+      <div class="title-2" id="sheet-title">Decision</div>
+      <div class="footnote" id="sheet-sub"></div>
+    </div>
+    <span class="pill idle" id="sheet-pill">—</span>
+    <button class="sheet-close" id="sheet-close" type="button" aria-label="Close">&times;</button>
+  </div>
+  <div class="sheet-body" id="sheet-body"></div>
+</aside>
+
+<script src="/static/charts.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

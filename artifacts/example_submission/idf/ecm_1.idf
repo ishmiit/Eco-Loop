@@ -1,0 +1,1353 @@
+!-   ===========================================================================
+!-   Eco-Loop Building Agents Ã¢ÂÂ BASELINE BUILDING MODEL
+!-   ===========================================================================
+!-
+!-   A three-zone FSSAI-licensed food business premises (Chennai, hot-humid):
+!-
+!-        +--------------+--------------+--------------+   N
+!-        |   OFFICE     |  PROD_HALL   |  PACK_STORE  |   ^
+!-        |   80 m2      |   80 m2      |   80 m2      |   |
+!-        +--------------+--------------+--------------+
+!-        x=0            8              16             24     (y: 0 -> 10 m)
+!-
+!-   * 240 m2 single storey, 3.6 m floor-to-roof, uninsulated RCC roof and
+!-     230 mm brick walls Ã¢ÂÂ representative of Indian light-industrial stock.
+!-   * Each zone is served by ZoneHVAC:IdealLoadsAirSystem so that the metric
+!-     of merit is the *thermal load the control strategy creates*. Load is
+!-     converted to electricity by an explicit plant model in Python
+!-     (ecoloop.metrics.PlantModel: cooling COP 3.2, heating COP 3.0, fan
+!-     1.0 kW per m3/s) applied identically to the baseline and the AI run.
+!-   * Interior partitions are adiabatic Ã¢ÂÂ a standard simplification for a
+!-     single-storey open plan with similar adjacent set-points.
+!-
+!-   THE CLOSED-LOOP CONTROL SURFACE
+!-   Nine Schedule:Constant objects are the only things the agent writes to.
+!-   They are actuated live through the EnergyPlus runtime API
+!-   ("Schedule:Constant" / "Schedule Value"), so no IDF edit and no restart is
+!-   needed to change control:
+!-
+!-       CSP_OFFICE  CSP_PROD  CSP_STORE   cooling set-point per zone   (C)
+!-       HSP_OFFICE  HSP_PROD  HSP_STORE   heating set-point per zone   (C)
+!-       OAF_OFFICE  OAF_PROD  OAF_STORE   outdoor-air fraction (0-1)
+!-
+!-   RunPeriod and Timestep are rewritten per run by ecoloop.sim.idf from the
+!-   RunConfig; the values below are the committed defaults.
+!-   ===========================================================================
+
+  Version,
+    25.2;
+
+  SimulationControl,
+    No,                     !- Do Zone Sizing Calculation
+    No,                     !- Do System Sizing Calculation
+    No,                     !- Do Plant Sizing Calculation
+    No,                     !- Run Simulation for Sizing Periods
+    Yes,                    !- Run Simulation for Weather File Run Periods
+    No,                     !- Do HVAC Sizing Simulation for Sizing Periods
+    1;                      !- Maximum Number of HVAC Sizing Simulation Passes
+
+  Building,
+    FoodPremises_3Zone,     !- Name
+    0.0,                    !- North Axis {deg}
+    City,                   !- Terrain
+    0.04,                   !- Loads Convergence Tolerance Value {W}
+    0.4,                    !- Temperature Convergence Tolerance Value {deltaC}
+    FullExterior,           !- Solar Distribution
+    25,                     !- Maximum Number of Warmup Days
+    2;                      !- Minimum Number of Warmup Days
+
+  Timestep,
+    4;
+
+  HeatBalanceAlgorithm,
+    ConductionTransferFunction;
+
+  SurfaceConvectionAlgorithm:Inside,
+    TARP;
+
+  SurfaceConvectionAlgorithm:Outside,
+    DOE-2;
+
+  Site:Location,
+    Chennai_IND,            !- Name
+    13.00,                  !- Latitude {deg}
+    80.18,                  !- Longitude {deg}
+    5.5,                    !- Time Zone {hr}
+    16.0;                   !- Elevation {m}
+
+  Site:GroundTemperature:BuildingSurface,
+    26.0,
+    26.0,
+    27.0,
+    28.0,
+    29.0,
+    29.5,
+    29.0,
+    28.5,
+    28.0,
+    27.5,
+    27.0,
+    26.5;
+
+  RunPeriod,
+    ClosedLoopWindow,       !- Name
+    5,                      !- Begin Month
+    12,                     !- Begin Day of Month
+    ,                       !- Begin Year
+    5,                      !- End Month
+    14,                     !- End Day of Month
+    ,                       !- End Year
+    Tuesday,                !- Day of Week for Start Day
+    No,                     !- Use Weather File Holidays and Special Days
+    No,                     !- Use Weather File Daylight Saving Period
+    No,                     !- Apply Weekend Holiday Rule
+    Yes,                    !- Use Weather File Rain Indicators
+    Yes;                    !- Use Weather File Snow Indicators
+
+!-   --- CO2 / indoor air quality -------------------------------------------
+  ZoneAirContaminantBalance,
+    Yes,                    !- Carbon Dioxide Concentration
+    OUTDOOR_CO2_SCH;        !- Outdoor Carbon Dioxide Schedule Name
+
+!-   ===========================================================================
+!-   SCHEDULE TYPE LIMITS
+!-   ===========================================================================
+  ScheduleTypeLimits,
+    Fraction,
+    0.0,
+    1.0,
+    CONTINUOUS;
+
+  ScheduleTypeLimits,
+    Temperature,
+    -60,
+    200,
+    CONTINUOUS;
+
+  ScheduleTypeLimits,
+    ControlType,
+    0,
+    4,
+    DISCRETE;
+
+  ScheduleTypeLimits,
+    Any Number;
+
+  ScheduleTypeLimits,
+    ActivityLevel,
+    0,
+    1000,
+    CONTINUOUS;
+
+  ScheduleTypeLimits,
+    Velocity,
+    0.0,
+    3.0,
+    CONTINUOUS;
+
+  ScheduleTypeLimits,
+    ClothingInsulation,
+    0.0,
+    2.0,
+    CONTINUOUS;
+
+  ScheduleTypeLimits,
+    PPM,
+    0,
+    2000,
+    CONTINUOUS;
+
+!-   ===========================================================================
+!-   THE AGENT'S CONTROL SURFACE Ã¢ÂÂ actuated at run time via the E+ API
+!-   ===========================================================================
+  Schedule:Constant,
+    CSP_OFFICE,
+    Temperature,
+    24.0;
+
+  Schedule:Constant,
+    CSP_PROD,
+    Temperature,
+    24.0;
+
+  Schedule:Constant,
+    CSP_STORE,
+    Temperature,
+    24.0;
+
+  Schedule:Constant,
+    HSP_OFFICE,
+    Temperature,
+    21.0;
+
+  Schedule:Constant,
+    HSP_PROD,
+    Temperature,
+    21.0;
+
+  Schedule:Constant,
+    HSP_STORE,
+    Temperature,
+    21.0;
+
+  Schedule:Constant,
+    OAF_OFFICE,
+    Fraction,
+    1.0;
+
+  Schedule:Constant,
+    OAF_PROD,
+    Fraction,
+    1.0;
+
+  Schedule:Constant,
+    OAF_STORE,
+    Fraction,
+    1.0;
+
+  Schedule:Constant,
+    CONTROL_TYPE_DUAL,
+    ControlType,
+    4;
+
+  Schedule:Constant,
+    ALWAYS_ON,
+    Fraction,
+    1.0;
+
+  Schedule:Constant,
+    WORK_EFF_SCH,
+    Fraction,
+    0.0;
+
+!-   Air movement per zone, produced by the CIRC_FAN_* equipment below. Ceiling
+!-   fans in the office and packing areas (0.40 m/s) and industrial circulators
+!-   in the production hall (0.80 m/s) are near-universal in Indian food units,
+!-   and they are what makes elevated air set-points comfortable at all: BEE and
+!-   ECBC guidance pairs a 24-26 C set-point with air movement for exactly this
+!-   reason. Their electricity and motor heat are modelled, so the comfort
+!-   benefit is not free.
+  Schedule:Constant,
+    AIR_VELO_OFFICE,
+    Velocity,
+    0.40;
+
+  Schedule:Constant,
+    AIR_VELO_PROD,
+    Velocity,
+    0.80;
+
+  Schedule:Constant,
+    AIR_VELO_STORE,
+    Velocity,
+    0.40;
+
+  Schedule:Constant,
+    CLOTHING_SCH,
+    ClothingInsulation,
+    0.5;
+
+  Schedule:Constant,
+    OUTDOOR_CO2_SCH,
+    PPM,
+    420.0;
+
+  Schedule:Constant,
+    INFIL_SCH,
+    Fraction,
+    1.0;
+
+!-   ===========================================================================
+!-   OPERATING SCHEDULES Ã¢ÂÂ a two-shift food unit
+!-   Production 06:00-18:00 Mon-Sat, office 09:00-18:00 Mon-Fri.
+!-   ===========================================================================
+  Schedule:Compact,
+    OCC_OFFICE_SCH,         !- Name
+    Fraction,               !- Schedule Type Limits Name
+    Through: 12/31,
+    For: Weekdays,
+    Until: 09:00,
+    0.0,
+    Until: 13:00,
+    0.95,
+    Until: 14:00,
+    0.5,
+    Until: 18:00,
+    0.9,
+    Until: 19:00,
+    0.25,
+    Until: 24:00,
+    0.0,
+    For: Saturday,
+    Until: 09:00,
+    0.0,
+    Until: 14:00,
+    0.4,
+    Until: 24:00,
+    0.0,
+    For: AllOtherDays,
+    Until: 24:00,
+    0.0;
+
+  Schedule:Compact,
+    OCC_PROD_SCH,           !- Name
+    Fraction,
+    Through: 12/31,
+    For: Weekdays,
+    Until: 06:00,
+    0.0,
+    Until: 10:00,
+    1.0,
+    Until: 13:00,
+    0.9,
+    Until: 14:00,
+    0.4,
+    Until: 18:00,
+    0.95,
+    Until: 19:00,
+    0.3,
+    Until: 24:00,
+    0.0,
+    For: Saturday,
+    Until: 06:00,
+    0.0,
+    Until: 14:00,
+    0.7,
+    Until: 24:00,
+    0.0,
+    For: AllOtherDays,
+    Until: 24:00,
+    0.0;
+
+  Schedule:Compact,
+    OCC_STORE_SCH,          !- Name
+    Fraction,
+    Through: 12/31,
+    For: Weekdays,
+    Until: 07:00,
+    0.0,
+    Until: 12:00,
+    0.6,
+    Until: 14:00,
+    0.3,
+    Until: 18:00,
+    0.7,
+    Until: 24:00,
+    0.0,
+    For: Saturday,
+    Until: 08:00,
+    0.0,
+    Until: 14:00,
+    0.4,
+    Until: 24:00,
+    0.0,
+    For: AllOtherDays,
+    Until: 24:00,
+    0.0;
+
+  Schedule:Compact,
+    LIGHT_SCH,              !- Name
+    Fraction,
+    Through: 12/31,
+    For: Weekdays,
+    Until: 06:00,
+    0.05,
+    Until: 19:00,
+    0.9,
+    Until: 21:00,
+    0.2,
+    Until: 24:00,
+    0.05,
+    For: Saturday,
+    Until: 06:00,
+    0.05,
+    Until: 15:00,
+    0.7,
+    Until: 24:00,
+    0.05,
+    For: AllOtherDays,
+    Until: 24:00,
+    0.05;
+
+  Schedule:Compact,
+    EQUIP_SCH,              !- Name
+    Fraction,
+    Through: 12/31,
+    For: Weekdays,
+    Until: 06:00,
+    0.15,
+    Until: 18:00,
+    0.85,
+    Until: 20:00,
+    0.35,
+    Until: 24:00,
+    0.15,
+    For: Saturday,
+    Until: 06:00,
+    0.15,
+    Until: 14:00,
+    0.6,
+    Until: 24:00,
+    0.15,
+    For: AllOtherDays,
+    Until: 24:00,
+    0.15;
+
+!-   Metabolic rate per person: 120 W office (1.0 met), 200 W production
+!-   (1.7 met, standing light work), 165 W packing.
+  Schedule:Constant,
+    ACTIVITY_OFFICE_SCH,
+    ActivityLevel,
+    120.0;
+
+  Schedule:Constant,
+    ACTIVITY_PROD_SCH,
+    ActivityLevel,
+    200.0;
+
+  Schedule:Constant,
+    ACTIVITY_STORE_SCH,
+    ActivityLevel,
+    165.0;
+
+!-   ===========================================================================
+!-   CONSTRUCTIONS
+!-   ===========================================================================
+  Material,
+    PLASTER_12MM,           !- Name
+    MediumRough,            !- Roughness
+    0.012,                  !- Thickness {m}
+    0.720,                  !- Conductivity {W/m-K}
+    1860.0,                 !- Density {kg/m3}
+    840.0,                  !- Specific Heat {J/kg-K}
+    0.90,                   !- Thermal Absorptance
+    0.60,                   !- Solar Absorptance
+    0.60;                   !- Visible Absorptance
+
+  Material,
+    BRICK_230MM,            !- Name
+    MediumRough,            !- Roughness
+    0.230,                  !- Thickness {m}
+    0.810,                  !- Conductivity {W/m-K}
+    1820.0,                 !- Density {kg/m3}
+    880.0,                  !- Specific Heat {J/kg-K}
+    0.90,                   !- Thermal Absorptance
+    0.70,                   !- Solar Absorptance
+    0.70;                   !- Visible Absorptance
+
+  Material,
+    BRICK_115MM,            !- Name
+    MediumRough,            !- Roughness
+    0.115,                  !- Thickness {m}
+    0.810,                  !- Conductivity {W/m-K}
+    1820.0,                 !- Density {kg/m3}
+    880.0,                  !- Specific Heat {J/kg-K}
+    0.90,                   !- Thermal Absorptance
+    0.70,                   !- Solar Absorptance
+    0.70;                   !- Visible Absorptance
+
+  Material,
+    RCC_150MM,              !- Name
+    MediumRough,            !- Roughness
+    0.150,                  !- Thickness {m}
+    1.730,                  !- Conductivity {W/m-K}
+    2400.0,                 !- Density {kg/m3}
+    880.0,                  !- Specific Heat {J/kg-K}
+    0.90,                   !- Thermal Absorptance
+    0.75,                   !- Solar Absorptance
+    0.75;                   !- Visible Absorptance
+
+  Material,
+    ROOF_SCREED_40MM,       !- Name
+    Rough,                  !- Roughness
+    0.040,                  !- Thickness {m}
+    1.100,                  !- Conductivity {W/m-K}
+    2000.0,                 !- Density {kg/m3}
+    900.0,                  !- Specific Heat {J/kg-K}
+    0.90,                   !- Thermal Absorptance
+    0.3,                    !- Solar Absorptance
+    0.3;                    !- Visible Absorptance
+
+!-   Optional layer used only by the roof-insulation ECM the agent may write.
+  Material,
+    ROOF_INSUL_50MM,        !- Name
+    Smooth,                 !- Roughness
+    0.050,                  !- Thickness {m}
+    0.035,                  !- Conductivity {W/m-K}
+    32.0,                   !- Density {kg/m3}
+    1210.0,                 !- Specific Heat {J/kg-K}
+    0.90,                   !- Thermal Absorptance
+    0.60,                   !- Solar Absorptance
+    0.60;                   !- Visible Absorptance
+
+  Material,
+    CONCRETE_SLAB_200MM,    !- Name
+    MediumRough,            !- Roughness
+    0.200,                  !- Thickness {m}
+    1.730,                  !- Conductivity {W/m-K}
+    2400.0,                 !- Density {kg/m3}
+    880.0,                  !- Specific Heat {J/kg-K}
+    0.90,                   !- Thermal Absorptance
+    0.65,                   !- Solar Absorptance
+    0.65;                   !- Visible Absorptance
+
+  Material,
+    FLOOR_TILE_10MM,        !- Name
+    Smooth,                 !- Roughness
+    0.010,                  !- Thickness {m}
+    1.300,                  !- Conductivity {W/m-K}
+    2300.0,                 !- Density {kg/m3}
+    840.0,                  !- Specific Heat {J/kg-K}
+    0.90,                   !- Thermal Absorptance
+    0.55,                   !- Solar Absorptance
+    0.55;                   !- Visible Absorptance
+
+  WindowMaterial:SimpleGlazingSystem,
+    GLAZING_SINGLE_CLEAR,   !- Name
+    5.80,                   !- U-Factor {W/m2-K}
+    0.82,                   !- Solar Heat Gain Coefficient
+    0.88;                   !- Visible Transmittance
+
+!-   Optional glazing used only by the glazing-upgrade ECM.
+  WindowMaterial:SimpleGlazingSystem,
+    GLAZING_DGU_LOWE,       !- Name
+    1.80,                   !- U-Factor {W/m2-K}
+    0.28,                   !- Solar Heat Gain Coefficient
+    0.62;                   !- Visible Transmittance
+
+  Construction,
+    EXT_WALL,               !- Name
+    PLASTER_12MM,           !- Outside Layer
+    BRICK_230MM,            !- Layer 2
+    PLASTER_12MM;           !- Layer 3
+
+  Construction,
+    INT_PARTITION,          !- Name
+    PLASTER_12MM,           !- Outside Layer
+    BRICK_115MM,            !- Layer 2
+    PLASTER_12MM;           !- Layer 3
+
+  Construction,
+    ROOF_UNINSULATED,       !- Name
+    ROOF_SCREED_40MM,       !- Outside Layer
+    RCC_150MM,              !- Layer 2
+    PLASTER_12MM;           !- Layer 3
+
+  Construction,
+    GROUND_FLOOR,           !- Name
+    CONCRETE_SLAB_200MM,    !- Outside Layer
+    FLOOR_TILE_10MM;        !- Layer 2
+
+  Construction,
+    WINDOW_CLEAR,           !- Name
+    GLAZING_DGU_LOWE;       !- Outside Layer
+
+!-   ===========================================================================
+!-   ZONES
+!-   ===========================================================================
+  GlobalGeometryRules,
+    UpperLeftCorner,        !- Starting Vertex Position
+    CounterClockWise,       !- Vertex Entry Direction
+    World,                  !- Coordinate System
+    ,                       !- Daylighting Reference Point Coordinate System
+    World;                  !- Rectangular Surface Coordinate System
+
+  Zone,
+    OFFICE,                 !- Name
+    0.0,                    !- Direction of Relative North {deg}
+    0.0,
+    0.0,
+    0.0,                    !- X,Y,Z Origin {m}
+    1,                      !- Type
+    1,                      !- Multiplier
+    3.6,                    !- Ceiling Height {m}
+    288.0,                  !- Volume {m3}
+    80.0;                   !- Floor Area {m2}
+
+  Zone,
+    PROD_HALL,              !- Name
+    0.0,                    !- Direction of Relative North {deg}
+    0.0,
+    0.0,
+    0.0,                    !- X,Y,Z Origin {m}
+    1,                      !- Type
+    1,                      !- Multiplier
+    3.6,                    !- Ceiling Height {m}
+    288.0,                  !- Volume {m3}
+    80.0;                   !- Floor Area {m2}
+
+  Zone,
+    PACK_STORE,             !- Name
+    0.0,                    !- Direction of Relative North {deg}
+    0.0,
+    0.0,
+    0.0,                    !- X,Y,Z Origin {m}
+    1,                      !- Type
+    1,                      !- Multiplier
+    3.6,                    !- Ceiling Height {m}
+    288.0,                  !- Volume {m3}
+    80.0;                   !- Floor Area {m2}
+
+!-   --- OFFICE  x: 0 -> 8 ---------------------------------------------------
+  Wall:Exterior,
+    OFFICE_WALL_S,          !- Name
+    EXT_WALL,               !- Construction Name
+    OFFICE,                 !- Zone Name
+    ,                       !- Space Name
+    180,                    !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    0.0,
+    0.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    3.6;                    !- Height {m}
+
+  Window,
+    OFFICE_WIN_S,           !- Name
+    WINDOW_CLEAR,           !- Construction Name
+    OFFICE_WALL_S,          !- Building Surface Name
+    ,                       !- Frame and Divider Name
+    1,                      !- Multiplier
+    1.5,                    !- Starting X Coordinate {m}
+    0.9,                    !- Starting Z Coordinate {m}
+    5.0,                    !- Length {m}
+    1.8;                    !- Height {m}
+
+  Wall:Adiabatic,
+    OFFICE_WALL_E,          !- Name
+    INT_PARTITION,          !- Construction Name
+    OFFICE,                 !- Zone Name
+    ,                       !- Space Name
+    90,                     !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    8.0,
+    0.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    10.0,                   !- Length {m}
+    3.6;                    !- Height {m}
+
+  Wall:Exterior,
+    OFFICE_WALL_N,          !- Name
+    EXT_WALL,               !- Construction Name
+    OFFICE,                 !- Zone Name
+    ,                       !- Space Name
+    0,                      !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    8.0,
+    10.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    3.6;                    !- Height {m}
+
+  Window,
+    OFFICE_WIN_N,           !- Name
+    WINDOW_CLEAR,           !- Construction Name
+    OFFICE_WALL_N,          !- Building Surface Name
+    ,                       !- Frame and Divider Name
+    1,                      !- Multiplier
+    2.5,                    !- Starting X Coordinate {m}
+    1.2,                    !- Starting Z Coordinate {m}
+    3.0,                    !- Length {m}
+    1.2;                    !- Height {m}
+
+  Wall:Exterior,
+    OFFICE_WALL_W,          !- Name
+    EXT_WALL,               !- Construction Name
+    OFFICE,                 !- Zone Name
+    ,                       !- Space Name
+    270,                    !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    0.0,
+    10.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    10.0,                   !- Length {m}
+    3.6;                    !- Height {m}
+
+  Roof,
+    OFFICE_ROOF,            !- Name
+    ROOF_UNINSULATED,       !- Construction Name
+    OFFICE,                 !- Zone Name
+    ,                       !- Space Name
+    180,                    !- Azimuth Angle {deg}
+    0,                      !- Tilt Angle {deg}
+    0.0,
+    0.0,
+    3.6,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    10.0;                   !- Width {m}
+
+  Floor:GroundContact,
+    OFFICE_FLOOR,           !- Name
+    GROUND_FLOOR,           !- Construction Name
+    OFFICE,                 !- Zone Name
+    ,                       !- Space Name
+    90,                     !- Azimuth Angle {deg}
+    180,                    !- Tilt Angle {deg}
+    0.0,
+    0.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    10.0;                   !- Width {m}
+
+!-   --- PROD_HALL  x: 8 -> 16 ----------------------------------------------
+  Wall:Exterior,
+    PROD_WALL_S,            !- Name
+    EXT_WALL,               !- Construction Name
+    PROD_HALL,              !- Zone Name
+    ,                       !- Space Name
+    180,                    !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    8.0,
+    0.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    3.6;                    !- Height {m}
+
+  Window,
+    PROD_WIN_S,             !- Name
+    WINDOW_CLEAR,           !- Construction Name
+    PROD_WALL_S,            !- Building Surface Name
+    ,                       !- Frame and Divider Name
+    1,                      !- Multiplier
+    2.0,                    !- Starting X Coordinate {m}
+    1.5,                    !- Starting Z Coordinate {m}
+    4.0,                    !- Length {m}
+    1.5;                    !- Height {m}
+
+  Wall:Adiabatic,
+    PROD_WALL_E,            !- Name
+    INT_PARTITION,          !- Construction Name
+    PROD_HALL,              !- Zone Name
+    ,                       !- Space Name
+    90,                     !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    16.0,
+    0.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    10.0,                   !- Length {m}
+    3.6;                    !- Height {m}
+
+  Wall:Exterior,
+    PROD_WALL_N,            !- Name
+    EXT_WALL,               !- Construction Name
+    PROD_HALL,              !- Zone Name
+    ,                       !- Space Name
+    0,                      !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    16.0,
+    10.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    3.6;                    !- Height {m}
+
+  Wall:Adiabatic,
+    PROD_WALL_W,            !- Name
+    INT_PARTITION,          !- Construction Name
+    PROD_HALL,              !- Zone Name
+    ,                       !- Space Name
+    270,                    !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    8.0,
+    10.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    10.0,                   !- Length {m}
+    3.6;                    !- Height {m}
+
+  Roof,
+    PROD_ROOF,              !- Name
+    ROOF_UNINSULATED,       !- Construction Name
+    PROD_HALL,              !- Zone Name
+    ,                       !- Space Name
+    180,                    !- Azimuth Angle {deg}
+    0,                      !- Tilt Angle {deg}
+    8.0,
+    0.0,
+    3.6,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    10.0;                   !- Width {m}
+
+  Floor:GroundContact,
+    PROD_FLOOR,             !- Name
+    GROUND_FLOOR,           !- Construction Name
+    PROD_HALL,              !- Zone Name
+    ,                       !- Space Name
+    90,                     !- Azimuth Angle {deg}
+    180,                    !- Tilt Angle {deg}
+    8.0,
+    0.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    10.0;                   !- Width {m}
+
+!-   --- PACK_STORE  x: 16 -> 24 --------------------------------------------
+  Wall:Exterior,
+    STORE_WALL_S,           !- Name
+    EXT_WALL,               !- Construction Name
+    PACK_STORE,             !- Zone Name
+    ,                       !- Space Name
+    180,                    !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    16.0,
+    0.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    3.6;                    !- Height {m}
+
+  Window,
+    STORE_WIN_S,            !- Name
+    WINDOW_CLEAR,           !- Construction Name
+    STORE_WALL_S,           !- Building Surface Name
+    ,                       !- Frame and Divider Name
+    1,                      !- Multiplier
+    3.0,                    !- Starting X Coordinate {m}
+    1.8,                    !- Starting Z Coordinate {m}
+    2.0,                    !- Length {m}
+    1.0;                    !- Height {m}
+
+  Wall:Exterior,
+    STORE_WALL_E,           !- Name
+    EXT_WALL,               !- Construction Name
+    PACK_STORE,             !- Zone Name
+    ,                       !- Space Name
+    90,                     !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    24.0,
+    0.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    10.0,                   !- Length {m}
+    3.6;                    !- Height {m}
+
+  Wall:Exterior,
+    STORE_WALL_N,           !- Name
+    EXT_WALL,               !- Construction Name
+    PACK_STORE,             !- Zone Name
+    ,                       !- Space Name
+    0,                      !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    24.0,
+    10.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    3.6;                    !- Height {m}
+
+  Wall:Adiabatic,
+    STORE_WALL_W,           !- Name
+    INT_PARTITION,          !- Construction Name
+    PACK_STORE,             !- Zone Name
+    ,                       !- Space Name
+    270,                    !- Azimuth Angle {deg}
+    90,                     !- Tilt Angle {deg}
+    16.0,
+    10.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    10.0,                   !- Length {m}
+    3.6;                    !- Height {m}
+
+  Roof,
+    STORE_ROOF,             !- Name
+    ROOF_UNINSULATED,       !- Construction Name
+    PACK_STORE,             !- Zone Name
+    ,                       !- Space Name
+    180,                    !- Azimuth Angle {deg}
+    0,                      !- Tilt Angle {deg}
+    16.0,
+    0.0,
+    3.6,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    10.0;                   !- Width {m}
+
+  Floor:GroundContact,
+    STORE_FLOOR,            !- Name
+    GROUND_FLOOR,           !- Construction Name
+    PACK_STORE,             !- Zone Name
+    ,                       !- Space Name
+    90,                     !- Azimuth Angle {deg}
+    180,                    !- Tilt Angle {deg}
+    16.0,
+    0.0,
+    0.0,                    !- Starting X,Y,Z {m}
+    8.0,                    !- Length {m}
+    10.0;                   !- Width {m}
+
+!-   ===========================================================================
+!-   INTERNAL GAINS
+!-   ===========================================================================
+  People,
+    OFFICE_PEOPLE,          !- Name
+    OFFICE,                 !- Zone or ZoneList or Space or SpaceList Name
+    OCC_OFFICE_SCH,         !- Number of People Schedule Name
+    People,                 !- Number of People Calculation Method
+    6,                      !- Number of People
+    ,                       !- People per Floor Area {person/m2}
+    ,                       !- Floor Area per Person {m2/person}
+    0.30,                   !- Fraction Radiant
+    AUTOCALCULATE,          !- Sensible Heat Fraction
+    ACTIVITY_OFFICE_SCH,    !- Activity Level Schedule Name
+    3.82E-8,                !- Carbon Dioxide Generation Rate {m3/s-W}
+    No,                     !- Enable ASHRAE 55 Comfort Warnings
+    EnclosureAveraged,      !- Mean Radiant Temperature Calculation Type
+    ,                       !- Surface Name/Angle Factor List Name
+    WORK_EFF_SCH,           !- Work Efficiency Schedule Name
+    ClothingInsulationSchedule, !- Clothing Insulation Calculation Method
+    ,                       !- Clothing Insulation Calculation Method Schedule Name
+    CLOTHING_SCH,           !- Clothing Insulation Schedule Name
+    AIR_VELO_OFFICE,        !- Air Velocity Schedule Name
+    FANGER;                 !- Thermal Comfort Model 1 Type
+
+  People,
+    PROD_PEOPLE,            !- Name
+    PROD_HALL,              !- Zone or ZoneList or Space or SpaceList Name
+    OCC_PROD_SCH,           !- Number of People Schedule Name
+    People,                 !- Number of People Calculation Method
+    12,                     !- Number of People
+    ,                       !- People per Floor Area {person/m2}
+    ,                       !- Floor Area per Person {m2/person}
+    0.30,                   !- Fraction Radiant
+    AUTOCALCULATE,          !- Sensible Heat Fraction
+    ACTIVITY_PROD_SCH,      !- Activity Level Schedule Name
+    3.82E-8,                !- Carbon Dioxide Generation Rate {m3/s-W}
+    No,                     !- Enable ASHRAE 55 Comfort Warnings
+    EnclosureAveraged,      !- Mean Radiant Temperature Calculation Type
+    ,                       !- Surface Name/Angle Factor List Name
+    WORK_EFF_SCH,           !- Work Efficiency Schedule Name
+    ClothingInsulationSchedule, !- Clothing Insulation Calculation Method
+    ,                       !- Clothing Insulation Calculation Method Schedule Name
+    CLOTHING_SCH,           !- Clothing Insulation Schedule Name
+    AIR_VELO_PROD,          !- Air Velocity Schedule Name
+    FANGER;                 !- Thermal Comfort Model 1 Type
+
+  People,
+    STORE_PEOPLE,           !- Name
+    PACK_STORE,             !- Zone or ZoneList or Space or SpaceList Name
+    OCC_STORE_SCH,          !- Number of People Schedule Name
+    People,                 !- Number of People Calculation Method
+    4,                      !- Number of People
+    ,                       !- People per Floor Area {person/m2}
+    ,                       !- Floor Area per Person {m2/person}
+    0.30,                   !- Fraction Radiant
+    AUTOCALCULATE,          !- Sensible Heat Fraction
+    ACTIVITY_STORE_SCH,     !- Activity Level Schedule Name
+    3.82E-8,                !- Carbon Dioxide Generation Rate {m3/s-W}
+    No,                     !- Enable ASHRAE 55 Comfort Warnings
+    EnclosureAveraged,      !- Mean Radiant Temperature Calculation Type
+    ,                       !- Surface Name/Angle Factor List Name
+    WORK_EFF_SCH,           !- Work Efficiency Schedule Name
+    ClothingInsulationSchedule, !- Clothing Insulation Calculation Method
+    ,                       !- Clothing Insulation Calculation Method Schedule Name
+    CLOTHING_SCH,           !- Clothing Insulation Schedule Name
+    AIR_VELO_STORE,         !- Air Velocity Schedule Name
+    FANGER;                 !- Thermal Comfort Model 1 Type
+
+  Lights,
+    OFFICE_LIGHTS,          !- Name
+    OFFICE,                 !- Zone or ZoneList or Space or SpaceList Name
+    LIGHT_SCH,              !- Schedule Name
+    Watts/Area,             !- Design Level Calculation Method
+    ,                       !- Lighting Level {W}
+    9.0,                    !- Watts per Zone Floor Area {W/m2}
+    ,                       !- Watts per Person {W/person}
+    0.0,                    !- Return Air Fraction
+    0.42,                   !- Fraction Radiant
+    0.18,                   !- Fraction Visible
+    1.0,                    !- Fraction Replaceable
+    GeneralLights;          !- End-Use Subcategory
+
+  Lights,
+    PROD_LIGHTS,            !- Name
+    PROD_HALL,              !- Zone or ZoneList or Space or SpaceList Name
+    LIGHT_SCH,              !- Schedule Name
+    Watts/Area,             !- Design Level Calculation Method
+    ,                       !- Lighting Level {W}
+    12.0,                   !- Watts per Zone Floor Area {W/m2}
+    ,                       !- Watts per Person {W/person}
+    0.0,                    !- Return Air Fraction
+    0.42,                   !- Fraction Radiant
+    0.18,                   !- Fraction Visible
+    1.0,                    !- Fraction Replaceable
+    GeneralLights;          !- End-Use Subcategory
+
+  Lights,
+    STORE_LIGHTS,           !- Name
+    PACK_STORE,             !- Zone or ZoneList or Space or SpaceList Name
+    LIGHT_SCH,              !- Schedule Name
+    Watts/Area,             !- Design Level Calculation Method
+    ,                       !- Lighting Level {W}
+    7.0,                    !- Watts per Zone Floor Area {W/m2}
+    ,                       !- Watts per Person {W/person}
+    0.0,                    !- Return Air Fraction
+    0.42,                   !- Fraction Radiant
+    0.18,                   !- Fraction Visible
+    1.0,                    !- Fraction Replaceable
+    GeneralLights;          !- End-Use Subcategory
+
+  ElectricEquipment,
+    OFFICE_EQUIP,           !- Name
+    OFFICE,                 !- Zone or ZoneList or Space or SpaceList Name
+    EQUIP_SCH,              !- Schedule Name
+    Watts/Area,             !- Design Level Calculation Method
+    ,                       !- Design Level {W}
+    10.0,                   !- Watts per Zone Floor Area {W/m2}
+    ,                       !- Watts per Person {W/person}
+    0.0,                    !- Fraction Latent
+    0.30,                   !- Fraction Radiant
+    0.0;                    !- Fraction Lost
+
+  ElectricEquipment,
+    PROD_EQUIP,             !- Name
+    PROD_HALL,              !- Zone or ZoneList or Space or SpaceList Name
+    EQUIP_SCH,              !- Schedule Name
+    Watts/Area,             !- Design Level Calculation Method
+    ,                       !- Design Level {W}
+    26.0,                   !- Watts per Zone Floor Area {W/m2}
+    ,                       !- Watts per Person {W/person}
+    0.20,                   !- Fraction Latent
+    0.30,                   !- Fraction Radiant
+    0.10;                   !- Fraction Lost
+
+  ElectricEquipment,
+    STORE_EQUIP,            !- Name
+    PACK_STORE,             !- Zone or ZoneList or Space or SpaceList Name
+    EQUIP_SCH,              !- Schedule Name
+    Watts/Area,             !- Design Level Calculation Method
+    ,                       !- Design Level {W}
+    5.0,                    !- Watts per Zone Floor Area {W/m2}
+    ,                       !- Watts per Person {W/person}
+    0.0,                    !- Fraction Latent
+    0.30,                   !- Fraction Radiant
+    0.0;                    !- Fraction Lost
+
+  ElectricEquipment,
+    OFFICE_CIRC_FANS,       !- Name
+    OFFICE,                 !- Zone or ZoneList or Space or SpaceList Name
+    OCC_OFFICE_SCH,         !- Schedule Name
+    Watts/Area,             !- Design Level Calculation Method
+    ,                       !- Design Level {W}
+    1.5,                    !- Watts per Zone Floor Area {W/m2}
+    ,                       !- Watts per Person {W/person}
+    0.0,                    !- Fraction Latent
+    0.20,                   !- Fraction Radiant
+    0.0;                    !- Fraction Lost
+
+  ElectricEquipment,
+    PROD_CIRC_FANS,         !- Name
+    PROD_HALL,              !- Zone or ZoneList or Space or SpaceList Name
+    OCC_PROD_SCH,           !- Schedule Name
+    Watts/Area,             !- Design Level Calculation Method
+    ,                       !- Design Level {W}
+    3.0,                    !- Watts per Zone Floor Area {W/m2}
+    ,                       !- Watts per Person {W/person}
+    0.0,                    !- Fraction Latent
+    0.20,                   !- Fraction Radiant
+    0.0;                    !- Fraction Lost
+
+  ElectricEquipment,
+    STORE_CIRC_FANS,        !- Name
+    PACK_STORE,             !- Zone or ZoneList or Space or SpaceList Name
+    OCC_STORE_SCH,          !- Schedule Name
+    Watts/Area,             !- Design Level Calculation Method
+    ,                       !- Design Level {W}
+    1.5,                    !- Watts per Zone Floor Area {W/m2}
+    ,                       !- Watts per Person {W/person}
+    0.0,                    !- Fraction Latent
+    0.20,                   !- Fraction Radiant
+    0.0;                    !- Fraction Lost
+
+  ZoneInfiltration:DesignFlowRate,
+    OFFICE_INFIL,           !- Name
+    OFFICE,                 !- Zone or ZoneList or Space or SpaceList Name
+    INFIL_SCH,              !- Schedule Name
+    AirChanges/Hour,        !- Design Flow Rate Calculation Method
+    ,
+    ,
+    ,                       !- Flow rate fields
+    0.30;                   !- Air Changes per Hour {1/hr}
+
+  ZoneInfiltration:DesignFlowRate,
+    PROD_INFIL,             !- Name
+    PROD_HALL,              !- Zone or ZoneList or Space or SpaceList Name
+    INFIL_SCH,              !- Schedule Name
+    AirChanges/Hour,        !- Design Flow Rate Calculation Method
+    ,
+    ,
+    ,                       !- Flow rate fields
+    0.45;                   !- Air Changes per Hour {1/hr}
+
+  ZoneInfiltration:DesignFlowRate,
+    STORE_INFIL,            !- Name
+    PACK_STORE,             !- Zone or ZoneList or Space or SpaceList Name
+    INFIL_SCH,              !- Schedule Name
+    AirChanges/Hour,        !- Design Flow Rate Calculation Method
+    ,
+    ,
+    ,                       !- Flow rate fields
+    0.35;                   !- Air Changes per Hour {1/hr}
+
+!-   ===========================================================================
+!-   HVAC Ã¢ÂÂ ideal loads per zone, dual set-point thermostats on the
+!-   agent-actuated schedules, ventilation scaled by the OAF_* schedules.
+!-   ===========================================================================
+  DesignSpecification:OutdoorAir,
+    DSOA_OFFICE,            !- Name
+    Sum,                    !- Outdoor Air Method
+    0.0025,                 !- Outdoor Air Flow per Person {m3/s-person}
+    0.0003,                 !- Outdoor Air Flow per Zone Floor Area {m3/s-m2}
+    ,                       !- Outdoor Air Flow per Zone {m3/s}
+    ,                       !- Outdoor Air Flow Air Changes per Hour {1/hr}
+    OAF_OFFICE;             !- Outdoor Air Schedule Name
+
+!-   The production hall is ventilated above the ASHRAE 62.1 minimum, as FSSAI
+!-   hygiene practice requires for a food-handling space. That also leaves the
+!-   agent real headroom for demand-controlled ventilation: at full flow the
+!-   hall settles near 800 ppm, so cutting outdoor air is a genuine lever
+!-   rather than an instant CO2 breach.
+  DesignSpecification:OutdoorAir,
+    DSOA_PROD,              !- Name
+    Sum,                    !- Outdoor Air Method
+    0.0045,                 !- Outdoor Air Flow per Person {m3/s-person}
+    0.0010,                 !- Outdoor Air Flow per Zone Floor Area {m3/s-m2}
+    ,                       !- Outdoor Air Flow per Zone {m3/s}
+    ,                       !- Outdoor Air Flow Air Changes per Hour {1/hr}
+    OAF_PROD;               !- Outdoor Air Schedule Name
+
+  DesignSpecification:OutdoorAir,
+    DSOA_STORE,             !- Name
+    Sum,                    !- Outdoor Air Method
+    0.0025,                 !- Outdoor Air Flow per Person {m3/s-person}
+    0.0004,                 !- Outdoor Air Flow per Zone Floor Area {m3/s-m2}
+    ,                       !- Outdoor Air Flow per Zone {m3/s}
+    ,                       !- Outdoor Air Flow Air Changes per Hour {1/hr}
+    OAF_STORE;              !- Outdoor Air Schedule Name
+
+  OutdoorAir:Node,
+    OFFICE_OA_NODE;
+
+  OutdoorAir:Node,
+    PROD_OA_NODE;
+
+  OutdoorAir:Node,
+    STORE_OA_NODE;
+
+  ZoneControl:Thermostat,
+    OFFICE_THERMOSTAT,      !- Name
+    OFFICE,                 !- Zone or ZoneList Name
+    CONTROL_TYPE_DUAL,      !- Control Type Schedule Name
+    ThermostatSetpoint:DualSetpoint, !- Control 1 Object Type
+    OFFICE_SETPOINTS;       !- Control 1 Name
+
+  ThermostatSetpoint:DualSetpoint,
+    OFFICE_SETPOINTS,       !- Name
+    HSP_OFFICE,             !- Heating Setpoint Temperature Schedule Name
+    CSP_OFFICE;             !- Cooling Setpoint Temperature Schedule Name
+
+  ZoneControl:Thermostat,
+    PROD_THERMOSTAT,        !- Name
+    PROD_HALL,              !- Zone or ZoneList Name
+    CONTROL_TYPE_DUAL,      !- Control Type Schedule Name
+    ThermostatSetpoint:DualSetpoint, !- Control 1 Object Type
+    PROD_SETPOINTS;         !- Control 1 Name
+
+  ThermostatSetpoint:DualSetpoint,
+    PROD_SETPOINTS,         !- Name
+    HSP_PROD,               !- Heating Setpoint Temperature Schedule Name
+    CSP_PROD;               !- Cooling Setpoint Temperature Schedule Name
+
+  ZoneControl:Thermostat,
+    STORE_THERMOSTAT,       !- Name
+    PACK_STORE,             !- Zone or ZoneList Name
+    CONTROL_TYPE_DUAL,      !- Control Type Schedule Name
+    ThermostatSetpoint:DualSetpoint, !- Control 1 Object Type
+    STORE_SETPOINTS;        !- Control 1 Name
+
+  ThermostatSetpoint:DualSetpoint,
+    STORE_SETPOINTS,        !- Name
+    HSP_STORE,              !- Heating Setpoint Temperature Schedule Name
+    CSP_STORE;              !- Cooling Setpoint Temperature Schedule Name
+
+  ZoneHVAC:EquipmentConnections,
+    OFFICE,                 !- Zone Name
+    OFFICE_EQUIPMENT,       !- Zone Conditioning Equipment List Name
+    OFFICE_INLETS,          !- Zone Air Inlet Node or NodeList Name
+    ,                       !- Zone Air Exhaust Node or NodeList Name
+    OFFICE_ZONE_NODE,       !- Zone Air Node Name
+    OFFICE_RETURN;          !- Zone Return Air Node or NodeList Name
+
+  ZoneHVAC:EquipmentList,
+    OFFICE_EQUIPMENT,       !- Name
+    SequentialLoad,         !- Load Distribution Scheme
+    ZoneHVAC:IdealLoadsAirSystem, !- Zone Equipment 1 Object Type
+    OFFICE_IDEAL_LOADS,     !- Zone Equipment 1 Name
+    1,                      !- Zone Equipment 1 Cooling Sequence
+    1,                      !- Zone Equipment 1 Heating or No-Load Sequence
+    ,                       !- Zone Equipment 1 Sequential Cooling Fraction Schedule Name
+    ;                       !- Zone Equipment 1 Sequential Heating Fraction Schedule Name
+
+  ZoneHVAC:IdealLoadsAirSystem,
+    OFFICE_IDEAL_LOADS,     !- Name
+    ALWAYS_ON,              !- Availability Schedule Name
+    OFFICE_INLETS,          !- Zone Supply Air Node Name
+    ,                       !- Zone Exhaust Air Node Name
+    ,                       !- System Inlet Air Node Name
+    45,                     !- Maximum Heating Supply Air Temperature {C}
+    13,                     !- Minimum Cooling Supply Air Temperature {C}
+    0.0156,                 !- Maximum Heating Supply Air Humidity Ratio
+    0.0077,                 !- Minimum Cooling Supply Air Humidity Ratio
+    NoLimit,                !- Heating Limit
+    ,                       !- Maximum Heating Air Flow Rate {m3/s}
+    ,                       !- Maximum Sensible Heating Capacity {W}
+    NoLimit,                !- Cooling Limit
+    ,                       !- Maximum Cooling Air Flow Rate {m3/s}
+    ,                       !- Maximum Total Cooling Capacity {W}
+    ,                       !- Heating Availability Schedule Name
+    ,                       !- Cooling Availability Schedule Name
+    ConstantSensibleHeatRatio, !- Dehumidification Control Type
+    0.70,                   !- Cooling Sensible Heat Ratio
+    None,                   !- Humidification Control Type
+    DSOA_OFFICE,            !- Design Specification Outdoor Air Object Name
+    OFFICE_OA_NODE,         !- Outdoor Air Inlet Node Name
+    None,                   !- Demand Controlled Ventilation Type
+    NoEconomizer,           !- Outdoor Air Economizer Type
+    None,                   !- Heat Recovery Type
+    ,                       !- Sensible Heat Recovery Effectiveness
+    ;                       !- Latent Heat Recovery Effectiveness
+
+  NodeList,
+    OFFICE_INLETS,
+    OFFICE_SUPPLY_NODE;
+
+  ZoneHVAC:EquipmentConnections,
+    PROD_HALL,              !- Zone Name
+    PROD_EQUIPMENT,         !- Zone Conditioning Equipment List Name
+    PROD_INLETS,            !- Zone Air Inlet Node or NodeList Name
+    ,                       !- Zone Air Exhaust Node or NodeList Name
+    PROD_ZONE_NODE,         !- Zone Air Node Name
+    PROD_RETURN;            !- Zone Return Air Node or NodeList Name
+
+  ZoneHVAC:EquipmentList,
+    PROD_EQUIPMENT,         !- Name
+    SequentialLoad,         !- Load Distribution Scheme
+    ZoneHVAC:IdealLoadsAirSystem, !- Zone Equipment 1 Object Type
+    PROD_IDEAL_LOADS,       !- Zone Equipment 1 Name
+    1,                      !- Zone Equipment 1 Cooling Sequence
+    1,                      !- Zone Equipment 1 Heating or No-Load Sequence
+    ,                       !- Zone Equipment 1 Sequential Cooling Fraction Schedule Name
+    ;                       !- Zone Equipment 1 Sequential Heating Fraction Schedule Name
+
+  ZoneHVAC:IdealLoadsAirSystem,
+    PROD_IDEAL_LOADS,       !- Name
+    ALWAYS_ON,              !- Availability Schedule Name
+    PROD_INLETS,            !- Zone Supply Air Node Name
+    ,                       !- Zone Exhaust Air Node Name
+    ,                       !- System Inlet Air Node Name
+    45,                     !- Maximum Heating Supply Air Temperature {C}
+    13,                     !- Minimum Cooling Supply Air Temperature {C}
+    0.0156,                 !- Maximum Heating Supply Air Humidity Ratio
+    0.0077,                 !- Minimum Cooling Supply Air Humidity Ratio
+    NoLimit,                !- Heating Limit
+    ,                       !- Maximum Heating Air Flow Rate {m3/s}
+    ,                       !- Maximum Sensible Heating Capacity {W}
+    NoLimit,                !- Cooling Limit
+    ,                       !- Maximum Cooling Air Flow Rate {m3/s}
+    ,                       !- Maximum Total Cooling Capacity {W}
+    ,                       !- Heating Availability Schedule Name
+    ,                       !- Cooling Availability Schedule Name
+    ConstantSensibleHeatRatio, !- Dehumidification Control Type
+    0.70,                   !- Cooling Sensible Heat Ratio
+    None,                   !- Humidification Control Type
+    DSOA_PROD,              !- Design Specification Outdoor Air Object Name
+    PROD_OA_NODE,           !- Outdoor Air Inlet Node Name
+    None,                   !- Demand Controlled Ventilation Type
+    NoEconomizer,           !- Outdoor Air Economizer Type
+    None,                   !- Heat Recovery Type
+    ,                       !- Sensible Heat Recovery Effectiveness
+    ;                       !- Latent Heat Recovery Effectiveness
+
+  NodeList,
+    PROD_INLETS,
+    PROD_SUPPLY_NODE;
+
+  ZoneHVAC:EquipmentConnections,
+    PACK_STORE,             !- Zone Name
+    STORE_EQUIPMENT,        !- Zone Conditioning Equipment List Name
+    STORE_INLETS,           !- Zone Air Inlet Node or NodeList Name
+    ,                       !- Zone Air Exhaust Node or NodeList Name
+    STORE_ZONE_NODE,        !- Zone Air Node Name
+    STORE_RETURN;           !- Zone Return Air Node or NodeList Name
+
+  ZoneHVAC:EquipmentList,
+    STORE_EQUIPMENT,        !- Name
+    SequentialLoad,         !- Load Distribution Scheme
+    ZoneHVAC:IdealLoadsAirSystem, !- Zone Equipment 1 Object Type
+    STORE_IDEAL_LOADS,      !- Zone Equipment 1 Name
+    1,                      !- Zone Equipment 1 Cooling Sequence
+    1,                      !- Zone Equipment 1 Heating or No-Load Sequence
+    ,                       !- Zone Equipment 1 Sequential Cooling Fraction Schedule Name
+    ;                       !- Zone Equipment 1 Sequential Heating Fraction Schedule Name
+
+  ZoneHVAC:IdealLoadsAirSystem,
+    STORE_IDEAL_LOADS,      !- Name
+    ALWAYS_ON,              !- Availability Schedule Name
+    STORE_INLETS,           !- Zone Supply Air Node Name
+    ,                       !- Zone Exhaust Air Node Name
+    ,                       !- System Inlet Air Node Name
+    45,                     !- Maximum Heating Supply Air Temperature {C}
+    13,                     !- Minimum Cooling Supply Air Temperature {C}
+    0.0156,                 !- Maximum Heating Supply Air Humidity Ratio
+    0.0077,                 !- Minimum Cooling Supply Air Humidity Ratio
+    NoLimit,                !- Heating Limit
+    ,                       !- Maximum Heating Air Flow Rate {m3/s}
+    ,                       !- Maximum Sensible Heating Capacity {W}
+    NoLimit,                !- Cooling Limit
+    ,                       !- Maximum Cooling Air Flow Rate {m3/s}
+    ,                       !- Maximum Total Cooling Capacity {W}
+    ,                       !- Heating Availability Schedule Name
+    ,                       !- Cooling Availability Schedule Name
+    ConstantSensibleHeatRatio, !- Dehumidification Control Type
+    0.70,                   !- Cooling Sensible Heat Ratio
+    None,                   !- Humidification Control Type
+    DSOA_STORE,             !- Design Specification Outdoor Air Object Name
+    STORE_OA_NODE,          !- Outdoor Air Inlet Node Name
+    None,                   !- Demand Controlled Ventilation Type
+    NoEconomizer,           !- Outdoor Air Economizer Type
+    None,                   !- Heat Recovery Type
+    ,                       !- Sensible Heat Recovery Effectiveness
+    ;                       !- Latent Heat Recovery Effectiveness
+
+  NodeList,
+    STORE_INLETS,
+    STORE_SUPPLY_NODE;
+
+!-   ===========================================================================
+!-   OUTPUT Ã¢ÂÂ the Python layer reads sensors through the API, so this section
+!-   only produces the human-readable evidence artifacts (eplustbl.htm).
+!-   ===========================================================================
+  Output:VariableDictionary,
+    IDF;
+
+  OutputControl:Table:Style,
+    HTML,
+    JtoKWH;
+
+  Output:Table:SummaryReports,
+    AnnualBuildingUtilityPerformanceSummary,
+    ClimaticDataSummary,
+    EnvelopeSummary,
+    SensibleHeatGainSummary;
+
+  Output:Meter,
+    Electricity:Facility,
+    Hourly;
+
+  Output:Variable,
+    *,
+    Zone Mean Air Temperature,
+    Hourly;
+
+  Output:Variable,
+    *,
+    Zone Air CO2 Concentration,
+    Hourly;
+
+  Output:Variable,
+    *,
+    Zone Ideal Loads Supply Air Total Cooling Rate,
+    Hourly;

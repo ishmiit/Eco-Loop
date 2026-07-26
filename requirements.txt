@@ -1,0 +1,17 @@
+# Eco-Loop Building Agents — runtime dependencies
+#
+# EnergyPlus itself is NOT a pip package. Install it with:
+#   ./scripts/install_energyplus.sh      (downloads the official NREL build)
+# The pyenergyplus Python API ships inside that install; the code locates it at
+# import time (see src/ecoloop/energyplus_locate.py).
+
+fastapi>=0.110
+uvicorn[standard]>=0.29
+requests>=2.31
+numpy>=1.26
+
+# Optional: static chart export for the presentation deck (scripts/export_report.py)
+matplotlib>=3.8
+
+# Dev
+pytest>=8.0

@@ -1,0 +1,10 @@
+metric,baseline,ai_closed_loop,delta,pct_reduction
+total_kwh,780.048,736.977,43.071,5.52
+hvac_kwh,560.394,517.323,43.071,7.69
+cost_inr,6441.05,6076.17,364.88,5.66
+carbon_kg,386.829,381.647,5.182,1.34
+peak_demand_w,19424.6,17305.8,2118.8,10.91
+peak_window_kwh,100.943,109.014,-8.071,-8.0
+pmv_exceedance_zone_hours,0.75,0.0,0.75,
+co2_exceedance_zone_hours,0.0,0.0,0.0,
+temp_exceedance_zone_hours,0.75,0.0,0.75,

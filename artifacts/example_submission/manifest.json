@@ -1,0 +1,92 @@
+{
+  "run_id": "example_submission",
+  "engine": "auto",
+  "idf": "/Users/rosh/Personal/Projects/HoneyWell/models/baseline.idf",
+  "epw": "/Users/rosh/Personal/Projects/HoneyWell/models/weather/IND_TN_Chennai.Intl.AP.432790_TMYx.2009-2023.epw",
+  "window": {
+    "start": [
+      5,
+      12
+    ],
+    "end": [
+      5,
+      14
+    ],
+    "timesteps_per_hour": 4
+  },
+  "decision_interval_min": 30,
+  "agent_mode": "sync",
+  "pace_s": 0.0,
+  "brain": "llm",
+  "llm": {
+    "provider": "ollama",
+    "base_url": "http://127.0.0.1:11434",
+    "model": "qwen2.5:3b",
+    "temperature": 0.1,
+    "max_tokens": 300,
+    "timeout_s": 25.0,
+    "max_tool_rounds": 4,
+    "enable_cache": true
+  },
+  "comfort": {
+    "occupied_temp_min_c": 22.5,
+    "occupied_temp_max_c": 26.5,
+    "unoccupied_temp_min_c": 16.0,
+    "unoccupied_temp_max_c": 30.0,
+    "pmv_limit": 0.7,
+    "co2_limit_ppm": 1100.0,
+    "rh_max_pct": 65.0,
+    "cooling_setpoint_min_c": 23.0,
+    "cooling_setpoint_max_c": 26.5,
+    "heating_setpoint_min_c": 19.0,
+    "heating_setpoint_max_c": 22.0,
+    "unoccupied_cooling_min_c": 26.0,
+    "unoccupied_cooling_max_c": 30.0,
+    "unoccupied_heating_min_c": 15.0,
+    "unoccupied_heating_max_c": 18.0,
+    "min_deadband_c": 2.0,
+    "max_step_c": 1.5,
+    "oa_fraction_min": 0.35,
+    "oa_fraction_max": 1.0,
+    "absolute_cooling_min_c": 21.0
+  },
+  "grid": {
+    "peak_demand_limit_w": 15000.0,
+    "peak_window": [
+      18,
+      22
+    ],
+    "tariff_offpeak": 6.5,
+    "tariff_mid": 8.0,
+    "tariff_peak": 11.5,
+    "carbon_profile": [
+      710,
+      705,
+      700,
+      700,
+      690,
+      660,
+      600,
+      520,
+      440,
+      380,
+      340,
+      320,
+      315,
+      320,
+      350,
+      420,
+      520,
+      640,
+      760,
+      790,
+      780,
+      760,
+      740,
+      725
+    ]
+  },
+  "ecm_pass": true,
+  "seed": 7,
+  "version": "1.0.0"
+}

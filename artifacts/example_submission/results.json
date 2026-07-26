@@ -1,0 +1,562 @@
+{
+  "run_id": "example_submission",
+  "engine": "energyplus",
+  "energyplus": "25.2.0",
+  "weather": "/Users/rosh/Personal/Projects/HoneyWell/models/weather/IND_TN_Chennai.Intl.AP.432790_TMYx.2009-2023.epw",
+  "window": {
+    "start": [
+      5,
+      12
+    ],
+    "end": [
+      5,
+      14
+    ],
+    "timesteps_per_hour": 4
+  },
+  "baseline": {
+    "label": "baseline",
+    "engine": "energyplus",
+    "ok": true,
+    "error": "",
+    "kpi": {
+      "label": "baseline",
+      "engine": "energyplus",
+      "steps": 288,
+      "sim_hours": 72.0,
+      "total_kwh": 780.0475977334132,
+      "hvac_kwh": 560.3935977334137,
+      "cooling_kwh": 464.70561571909604,
+      "heating_kwh": 0.0,
+      "fan_kwh": 95.6879820143171,
+      "plug_light_kwh": 219.6540000000006,
+      "cost_inr": 6441.046305763659,
+      "carbon_kg": 386.8286107459858,
+      "peak_demand_w": 19424.615477386415,
+      "peak_window_kwh": 100.94262405122973,
+      "occupied_hours": 39.0,
+      "temp_exceedance_zone_hours": 0.75,
+      "pmv_exceedance_zone_hours": 0.75,
+      "co2_exceedance_zone_hours": 0.0,
+      "worst_pmv": 1.7690034610741359,
+      "worst_co2_ppm": 941.3094776615942,
+      "mean_abs_pmv_occupied": 0.5856830118876015,
+      "mean_zone_temp_occupied_c": 24.033778827679672,
+      "decisions": 0,
+      "llm_decisions": 0,
+      "fallback_decisions": 0,
+      "mean_decision_latency_ms": 0.0,
+      "p95_decision_latency_ms": 0.0
+    },
+    "idf_used": "/Users/rosh/Personal/Projects/HoneyWell/artifacts/submission/idf/baseline.idf",
+    "epw_used": "/Users/rosh/Personal/Projects/HoneyWell/models/weather/IND_TN_Chennai.Intl.AP.432790_TMYx.2009-2023.epw",
+    "out_dir": "/Users/rosh/Personal/Projects/HoneyWell/artifacts/submission/eplus/baseline",
+    "wall_seconds": 0.13,
+    "severe_count": 0,
+    "warning_count": 2,
+    "steps": 288
+  },
+  "ai": {
+    "label": "ai",
+    "engine": "energyplus",
+    "ok": true,
+    "error": "",
+    "kpi": {
+      "label": "ai",
+      "engine": "energyplus",
+      "steps": 288,
+      "sim_hours": 72.0,
+      "total_kwh": 736.9769548258789,
+      "hvac_kwh": 517.3229548258792,
+      "cooling_kwh": 416.16358129509655,
+      "heating_kwh": 0.0,
+      "fan_kwh": 101.15937353078246,
+      "plug_light_kwh": 219.6540000000006,
+      "cost_inr": 6076.170330176102,
+      "carbon_kg": 381.64746068405015,
+      "peak_demand_w": 17305.771781225136,
+      "peak_window_kwh": 109.01356128874598,
+      "occupied_hours": 39.0,
+      "temp_exceedance_zone_hours": 0.0,
+      "pmv_exceedance_zone_hours": 0.0,
+      "co2_exceedance_zone_hours": 0.0,
+      "worst_pmv": 1.389133318880819,
+      "worst_co2_ppm": 1042.9995243496323,
+      "mean_abs_pmv_occupied": 0.9187892953464589,
+      "mean_zone_temp_occupied_c": 25.644415998154283,
+      "decisions": 177,
+      "llm_decisions": 177,
+      "fallback_decisions": 0,
+      "mean_decision_latency_ms": 7037.7,
+      "p95_decision_latency_ms": 10924.8
+    },
+    "idf_used": "/Users/rosh/Personal/Projects/HoneyWell/artifacts/submission/idf/ai.idf",
+    "epw_used": "/Users/rosh/Personal/Projects/HoneyWell/models/weather/IND_TN_Chennai.Intl.AP.432790_TMYx.2009-2023.epw",
+    "out_dir": "/Users/rosh/Personal/Projects/HoneyWell/artifacts/submission/eplus/ai",
+    "wall_seconds": 1248.44,
+    "severe_count": 0,
+    "warning_count": 2,
+    "steps": 288
+  },
+  "savings": {
+    "total_kwh": {
+      "baseline": 780.048,
+      "ai": 736.977,
+      "saved_kwh": 43.071,
+      "pct": 5.52
+    },
+    "hvac_kwh": {
+      "baseline": 560.394,
+      "ai": 517.323,
+      "saved_kwh": 43.071,
+      "pct": 7.69
+    },
+    "cost_inr": {
+      "baseline": 6441.05,
+      "ai": 6076.17,
+      "saved": 364.88,
+      "pct": 5.66
+    },
+    "carbon_kg": {
+      "baseline": 386.829,
+      "ai": 381.647,
+      "saved": 5.181,
+      "pct": 1.34
+    },
+    "peak_demand_w": {
+      "baseline": 19424.6,
+      "ai": 17305.8,
+      "pct": 10.91
+    },
+    "peak_window_kwh": {
+      "baseline": 100.943,
+      "ai": 109.014,
+      "pct": -8.0
+    },
+    "comfort": {
+      "baseline_temp_exceedance_zone_hours": 0.75,
+      "ai_temp_exceedance_zone_hours": 0.0,
+      "baseline_pmv_exceedance_zone_hours": 0.75,
+      "ai_pmv_exceedance_zone_hours": 0.0,
+      "baseline_co2_exceedance_zone_hours": 0.0,
+      "ai_co2_exceedance_zone_hours": 0.0,
+      "baseline_mean_abs_pmv": 0.586,
+      "ai_mean_abs_pmv": 0.919,
+      "baseline_worst_co2_ppm": 941.3,
+      "ai_worst_co2_ppm": 1043.0,
+      "comfort_preserved": true
+    },
+    "agent": {
+      "decisions": 177,
+      "llm_decisions": 177,
+      "fallback_decisions": 0,
+      "mean_latency_ms": 7037.7,
+      "p95_latency_ms": 10924.8
+    }
+  },
+  "agent": {
+    "provider": "ollama",
+    "model": "qwen2.5:3b",
+    "agent_mode": "sync",
+    "decision_interval_min": 30,
+    "decisions": 177,
+    "llm_decisions": 177,
+    "fallback_decisions": 0,
+    "llm_errors": 0,
+    "cache_hits": 14,
+    "tool_calls": 163,
+    "recovered_from_text": 0,
+    "guardrail_interventions": 118,
+    "accepted_default": 37,
+    "deviated_from_default": 140,
+    "mean_latency_ms": 7037.7,
+    "p95_latency_ms": 10924.8
+  },
+  "guardrail": {
+    "baseline": {
+      "timesteps": 288,
+      "timesteps_adjusted": 12,
+      "top_reasons": {
+        "cooling": 33,
+        "heating": 27,
+        "PMV": 3
+      }
+    },
+    "ai": {
+      "timesteps": 288,
+      "timesteps_adjusted": 118,
+      "top_reasons": {
+        "cooling": 91,
+        "PMV": 71,
+        "heating": 24,
+        "CO2": 18
+      }
+    }
+  },
+  "logs": {
+    "baseline": {
+      "summary": {
+        "total_messages": 61,
+        "unique_patterns": 56,
+        "fatal": 0,
+        "severe": 0,
+        "warning": 2,
+        "info": 59
+      },
+      "entries": [
+        {
+          "level": "warning",
+          "count": 1,
+          "pattern": "Site:GroundTemperature:BuildingSurface: Some values fall outside the range of ##C.",
+          "example": "Site:GroundTemperature:BuildingSurface: Some values fall outside the range of 15-25C."
+        },
+        {
+          "level": "warning",
+          "count": 1,
+          "pattern": "CalculateZoneVolume: # zones are not fully enclosed. For more details use: Output:Diagnostics,DisplayExtrawarnings;",
+          "example": "CalculateZoneVolume: 3 zones are not fully enclosed. For more details use:  Output:Diagnostics,DisplayExtrawarnings;"
+        },
+        {
+          "level": "info",
+          "count": 4,
+          "pattern": "Calculating CTFs for <name>",
+          "example": "Calculating CTFs for \"EXT_WALL\""
+        },
+        {
+          "level": "info",
+          "count": 3,
+          "pattern": "Warming up {#}",
+          "example": "Warming up {1}"
+        },
+        {
+          "level": "info",
+          "count": 1,
+          "pattern": "EnergyPlus Starting",
+          "example": "EnergyPlus Starting"
+        },
+        {
+          "level": "info",
+          "count": 1,
+          "pattern": "EnergyPlus, Version #.#-cf#c, YMD=#.# #:#",
+          "example": "EnergyPlus, Version 25.2.0-cf7368216c, YMD=2026.07.25 17:27"
+        },
+        {
+          "level": "info",
+          "count": 1,
+          "pattern": "Adjusting Air System Sizing",
+          "example": "Adjusting Air System Sizing"
+        },
+        {
+          "level": "info",
+          "count": 1,
+          "pattern": "Adjusting Standard # Ventilation Sizing",
+          "example": "Adjusting Standard 62.1 Ventilation Sizing"
+        }
+      ]
+    },
+    "ai": {
+      "summary": {
+        "total_messages": 61,
+        "unique_patterns": 56,
+        "fatal": 0,
+        "severe": 0,
+        "warning": 2,
+        "info": 59
+      },
+      "entries": [
+        {
+          "level": "warning",
+          "count": 1,
+          "pattern": "Site:GroundTemperature:BuildingSurface: Some values fall outside the range of ##C.",
+          "example": "Site:GroundTemperature:BuildingSurface: Some values fall outside the range of 15-25C."
+        },
+        {
+          "level": "warning",
+          "count": 1,
+          "pattern": "CalculateZoneVolume: # zones are not fully enclosed. For more details use: Output:Diagnostics,DisplayExtrawarnings;",
+          "example": "CalculateZoneVolume: 3 zones are not fully enclosed. For more details use:  Output:Diagnostics,DisplayExtrawarnings;"
+        },
+        {
+          "level": "info",
+          "count": 4,
+          "pattern": "Calculating CTFs for <name>",
+          "example": "Calculating CTFs for \"EXT_WALL\""
+        },
+        {
+          "level": "info",
+          "count": 3,
+          "pattern": "Warming up {#}",
+          "example": "Warming up {1}"
+        },
+        {
+          "level": "info",
+          "count": 1,
+          "pattern": "EnergyPlus Starting",
+          "example": "EnergyPlus Starting"
+        },
+        {
+          "level": "info",
+          "count": 1,
+          "pattern": "EnergyPlus, Version #.#-cf#c, YMD=#.# #:#",
+          "example": "EnergyPlus, Version 25.2.0-cf7368216c, YMD=2026.07.25 17:27"
+        },
+        {
+          "level": "info",
+          "count": 1,
+          "pattern": "Adjusting Air System Sizing",
+          "example": "Adjusting Air System Sizing"
+        },
+        {
+          "level": "info",
+          "count": 1,
+          "pattern": "Adjusting Standard # Ventilation Sizing",
+          "example": "Adjusting Standard 62.1 Ventilation Sizing"
+        }
+      ]
+    }
+  },
+  "ecm": {
+    "attempts": [
+      {
+        "index": 1,
+        "measures": [
+          {
+            "ecm": "cool_roof"
+          },
+          {
+            "ecm": "glazing_upgrade"
+          }
+        ],
+        "rationale": "",
+        "idf": "/Users/rosh/Personal/Projects/HoneyWell/artifacts/submission/idf/ecm_attempt_1.idf",
+        "applied": [
+          "cool_roof: solar absorptance 0.75 -> 0.3",
+          "glazing_upgrade: WINDOW_CLEAR now uses GLAZING_DGU_LOWE"
+        ],
+        "rejected": [],
+        "ok": true,
+        "error": "",
+        "kpi": {
+          "label": "ecm_1",
+          "engine": "energyplus",
+          "steps": 288,
+          "sim_hours": 72.0,
+          "total_kwh": 596.0106212545047,
+          "hvac_kwh": 376.356621254505,
+          "cooling_kwh": 294.28515353084435,
+          "heating_kwh": 0.0,
+          "fan_kwh": 82.07146772366016,
+          "plug_light_kwh": 219.6540000000006,
+          "cost_inr": 4887.1800406663615,
+          "carbon_kg": 291.1805397492009,
+          "peak_demand_w": 15646.558931836267,
+          "peak_window_kwh": 67.20527057624416,
+          "occupied_hours": 39.0,
+          "temp_exceedance_zone_hours": 0.0,
+          "pmv_exceedance_zone_hours": 0.0,
+          "co2_exceedance_zone_hours": 0.0,
+          "worst_pmv": 1.2505646729305526,
+          "worst_co2_ppm": 1041.8228133987234,
+          "mean_abs_pmv_occupied": 0.7413908045282993,
+          "mean_zone_temp_occupied_c": 25.578992972211864,
+          "decisions": 0,
+          "llm_decisions": 0,
+          "fallback_decisions": 0,
+          "mean_decision_latency_ms": 0.0,
+          "p95_decision_latency_ms": 0.0
+        },
+        "savings": {
+          "total_kwh": {
+            "baseline": 711.508,
+            "ai": 596.011,
+            "saved_kwh": 115.498,
+            "pct": 16.23
+          },
+          "hvac_kwh": {
+            "baseline": 491.854,
+            "ai": 376.357,
+            "saved_kwh": 115.498,
+            "pct": 23.48
+          },
+          "cost_inr": {
+            "baseline": 5846.76,
+            "ai": 4887.18,
+            "saved": 959.58,
+            "pct": 16.41
+          },
+          "carbon_kg": {
+            "baseline": 359.364,
+            "ai": 291.181,
+            "saved": 68.183,
+            "pct": 18.97
+          },
+          "peak_demand_w": {
+            "baseline": 17489.9,
+            "ai": 15646.6,
+            "pct": 10.54
+          },
+          "peak_window_kwh": {
+            "baseline": 93.239,
+            "ai": 67.205,
+            "pct": 27.92
+          },
+          "comfort": {
+            "baseline_temp_exceedance_zone_hours": 0.0,
+            "ai_temp_exceedance_zone_hours": 0.0,
+            "baseline_pmv_exceedance_zone_hours": 0.0,
+            "ai_pmv_exceedance_zone_hours": 0.0,
+            "baseline_co2_exceedance_zone_hours": 0.0,
+            "ai_co2_exceedance_zone_hours": 0.0,
+            "baseline_mean_abs_pmv": 0.88,
+            "ai_mean_abs_pmv": 0.741,
+            "baseline_worst_co2_ppm": 1041.6,
+            "ai_worst_co2_ppm": 1041.8,
+            "comfort_preserved": true
+          },
+          "agent": {
+            "decisions": 0,
+            "llm_decisions": 0,
+            "fallback_decisions": 0,
+            "mean_latency_ms": 0.0,
+            "p95_latency_ms": 0.0
+          }
+        }
+      }
+    ],
+    "attempt_count": 1,
+    "successful_attempts": 1,
+    "self_corrections": 0,
+    "best": {
+      "index": 1,
+      "measures": [
+        {
+          "ecm": "cool_roof"
+        },
+        {
+          "ecm": "glazing_upgrade"
+        }
+      ],
+      "rationale": "",
+      "idf": "/Users/rosh/Personal/Projects/HoneyWell/artifacts/submission/idf/ecm_attempt_1.idf",
+      "applied": [
+        "cool_roof: solar absorptance 0.75 -> 0.3",
+        "glazing_upgrade: WINDOW_CLEAR now uses GLAZING_DGU_LOWE"
+      ],
+      "rejected": [],
+      "ok": true,
+      "error": "",
+      "kpi": {
+        "label": "ecm_1",
+        "engine": "energyplus",
+        "steps": 288,
+        "sim_hours": 72.0,
+        "total_kwh": 596.0106212545047,
+        "hvac_kwh": 376.356621254505,
+        "cooling_kwh": 294.28515353084435,
+        "heating_kwh": 0.0,
+        "fan_kwh": 82.07146772366016,
+        "plug_light_kwh": 219.6540000000006,
+        "cost_inr": 4887.1800406663615,
+        "carbon_kg": 291.1805397492009,
+        "peak_demand_w": 15646.558931836267,
+        "peak_window_kwh": 67.20527057624416,
+        "occupied_hours": 39.0,
+        "temp_exceedance_zone_hours": 0.0,
+        "pmv_exceedance_zone_hours": 0.0,
+        "co2_exceedance_zone_hours": 0.0,
+        "worst_pmv": 1.2505646729305526,
+        "worst_co2_ppm": 1041.8228133987234,
+        "mean_abs_pmv_occupied": 0.7413908045282993,
+        "mean_zone_temp_occupied_c": 25.578992972211864,
+        "decisions": 0,
+        "llm_decisions": 0,
+        "fallback_decisions": 0,
+        "mean_decision_latency_ms": 0.0,
+        "p95_decision_latency_ms": 0.0
+      },
+      "savings": {
+        "total_kwh": {
+          "baseline": 711.508,
+          "ai": 596.011,
+          "saved_kwh": 115.498,
+          "pct": 16.23
+        },
+        "hvac_kwh": {
+          "baseline": 491.854,
+          "ai": 376.357,
+          "saved_kwh": 115.498,
+          "pct": 23.48
+        },
+        "cost_inr": {
+          "baseline": 5846.76,
+          "ai": 4887.18,
+          "saved": 959.58,
+          "pct": 16.41
+        },
+        "carbon_kg": {
+          "baseline": 359.364,
+          "ai": 291.181,
+          "saved": 68.183,
+          "pct": 18.97
+        },
+        "peak_demand_w": {
+          "baseline": 17489.9,
+          "ai": 15646.6,
+          "pct": 10.54
+        },
+        "peak_window_kwh": {
+          "baseline": 93.239,
+          "ai": 67.205,
+          "pct": 27.92
+        },
+        "comfort": {
+          "baseline_temp_exceedance_zone_hours": 0.0,
+          "ai_temp_exceedance_zone_hours": 0.0,
+          "baseline_pmv_exceedance_zone_hours": 0.0,
+          "ai_pmv_exceedance_zone_hours": 0.0,
+          "baseline_co2_exceedance_zone_hours": 0.0,
+          "ai_co2_exceedance_zone_hours": 0.0,
+          "baseline_mean_abs_pmv": 0.88,
+          "ai_mean_abs_pmv": 0.741,
+          "baseline_worst_co2_ppm": 1041.6,
+          "ai_worst_co2_ppm": 1041.8,
+          "comfort_preserved": true
+        },
+        "agent": {
+          "decisions": 0,
+          "llm_decisions": 0,
+          "fallback_decisions": 0,
+          "mean_latency_ms": 0.0,
+          "p95_latency_ms": 0.0
+        }
+      }
+    },
+    "wall_seconds": 16.06,
+    "tool_calls": 2,
+    "generated_models": [
+      "/Users/rosh/Personal/Projects/HoneyWell/artifacts/submission/idf/ecm_attempt_1.idf"
+    ]
+  },
+  "wall_seconds": 1265.05,
+  "artifacts": {
+    "ecm_evidence.json": 1699,
+    "ecm_report.json": 10100,
+    "eplus/ai/eplusout.err": 1235,
+    "eplus/ai/eplustbl.htm": 91624,
+    "eplus/baseline/eplusout.err": 1235,
+    "eplus/baseline/eplustbl.htm": 91624,
+    "eplus/ecm_1/eplusout.err": 1235,
+    "eplus/ecm_1/eplustbl.htm": 91624,
+    "eplus/ecm_reference/eplusout.err": 1235,
+    "eplus/ecm_reference/eplustbl.htm": 91624,
+    "events.jsonl": 3069940,
+    "idf/ai.idf": 49581,
+    "idf/baseline.idf": 49581,
+    "idf/ecm_1.idf": 49623,
+    "idf/ecm_attempt_1.idf": 49581,
+    "idf/ecm_reference.idf": 49581,
+    "manifest.json": 1875,
+    "telemetry_ai.csv": 83941,
+    "telemetry_baseline.csv": 85271
+  }
+}
