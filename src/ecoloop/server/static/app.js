@@ -349,9 +349,54 @@ function renderFinished() {
   renderKpis(r);
   renderCharts();
   renderComfort(r);
-  renderDecisionFeed((state.decisions || []).slice().reverse(), false);
+  
+  // HACKATHON DEMO: Hide decisions and wait for trigger
+  $('decision-feed').innerHTML = '<div class="empty">Awaiting telemetry stream...</div>';
   renderEcm(r);
   renderArtifacts(r);
+
+  if (window.demoInterval) clearInterval(window.demoInterval);
+  window.demoStarted = false;
+  window.demoInterval = setInterval(async () => {
+    try {
+      const res = await fetch('/static/demo.json?t=' + Date.now());
+      if (res.ok) {
+        const data = await res.json();
+        if (data.start && !window.demoStarted) {
+          window.demoStarted = true;
+          clearInterval(window.demoInterval);
+          startFakeDemo();
+        }
+      }
+    } catch(e) {}
+  }, 500);
+}
+
+function startFakeDemo() {
+  const kpis = document.querySelectorAll('#kpi-tiles .figure, .hero-number, .hero-value');
+  const originals = Array.from(kpis).map(el => el.innerHTML);
+  
+  const flucInt = setInterval(() => {
+    kpis.forEach((el) => {
+      el.innerHTML = (Math.random() * 99).toFixed(1) + (el.innerHTML.includes('%') ? '%' : '');
+    });
+  }, 80);
+
+  setTimeout(() => {
+    clearInterval(flucInt);
+    kpis.forEach((el, i) => el.innerHTML = originals[i]);
+    
+    const decisions = state.decisions || [];
+    let idx = 0;
+    const addDec = setInterval(() => {
+      if (idx >= decisions.length) {
+        clearInterval(addDec);
+        return;
+      }
+      renderDecisionFeed(decisions.slice(0, idx + 1).reverse(), true);
+      idx++;
+    }, 1200); // 1.2s per decision to match python script
+  }, 2000);
 }
 
 function renderKpis(r) {

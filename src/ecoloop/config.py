@@ -148,7 +148,7 @@ class LLMConfig:
     max_tokens: int = 300
     # Hard wall-clock budget for one decision (seconds). On timeout the run
     # holds the last known-good action and the heuristic policy takes the step.
-    timeout_s: float = 25.0
+    timeout_s: float = 120.0
     # Maximum tool-call round trips inside one decision.
     max_tool_rounds: int = 4
     # Identical-context cache: skip the model when the situation has not moved.

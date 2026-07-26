@@ -30,6 +30,26 @@
     carbon targets, then writes set-points straight back into the running simulation.
   </p>
 
+  <!-- ---------------------------------------------------------- headline -->
+  <section class="section hidden" id="result-section">
+    <div class="card-graphite hero">
+      <div>
+        <div class="caption">Electricity saved vs rule-based baseline</div>
+        <div class="hero-figure">
+          <span class="hero-number" id="hero-pct">—</span><span class="hero-unit">%</span>
+        </div>
+        <div class="hero-caption footnote" id="hero-sub">awaiting a completed run</div>
+      </div>
+      <div class="hero-side">
+        <div class="hero-row"><span class="label">HVAC electricity</span><span class="value" id="hero-hvac">—</span></div>
+        <div class="hero-row"><span class="label">Cost</span><span class="value" id="hero-cost">—</span></div>
+        <div class="hero-row"><span class="label">Carbon</span><span class="value" id="hero-carbon">—</span></div>
+        <div class="hero-row"><span class="label">Peak demand</span><span class="value" id="hero-peak">—</span></div>
+        <div class="hero-row"><span class="label">Comfort</span><span class="value" id="hero-comfort">—</span></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ------------------------------------------------------- run controls -->
   <section class="section">
     <div class="card">
@@ -77,16 +97,7 @@
     </div>
   </section>
 
-  <!-- ------------------------------------------------------------- runs -->
-  <section class="section" id="runs-section">
-    <div class="section-head">
-      <span class="caption">Completed runs</span>
-      <span class="footnote" id="runs-count"></span>
-    </div>
-    <div class="list" id="runs-list">
-      <div class="empty">No runs yet.</div>
-    </div>
-  </section>
+
 
   <!-- ------------------------------------------------------- live ticker -->
   <section class="section hidden" id="live-section">
@@ -95,31 +106,8 @@
     <div class="tiles" id="live-tiles"></div>
   </section>
 
-  <!-- ---------------------------------------------------------- headline -->
-  <section class="section hidden" id="result-section">
-    <div class="card-graphite hero">
-      <div>
-        <div class="caption">Electricity saved vs rule-based baseline</div>
-        <div class="hero-figure">
-          <span class="hero-number" id="hero-pct">—</span><span class="hero-unit">%</span>
-        </div>
-        <div class="hero-caption footnote" id="hero-sub">awaiting a completed run</div>
-      </div>
-      <div class="hero-side">
-        <div class="hero-row"><span class="label">HVAC electricity</span><span class="value" id="hero-hvac">—</span></div>
-        <div class="hero-row"><span class="label">Cost</span><span class="value" id="hero-cost">—</span></div>
-        <div class="hero-row"><span class="label">Carbon</span><span class="value" id="hero-carbon">—</span></div>
-        <div class="hero-row"><span class="label">Peak demand</span><span class="value" id="hero-peak">—</span></div>
-        <div class="hero-row"><span class="label">Comfort</span><span class="value" id="hero-comfort">—</span></div>
-      </div>
-    </div>
-  </section>
 
-  <!-- -------------------------------------------------------------- KPIs -->
-  <section class="section hidden" id="kpi-section">
-    <div class="section-head"><span class="caption">Where the energy went</span></div>
-    <div class="tiles" id="kpi-tiles"></div>
-  </section>
+
 
   <!-- ------------------------------------------------------------ charts -->
   <section class="section hidden" id="charts-section">
@@ -137,6 +125,12 @@
       <div style="overflow-x:auto"><table class="data" id="comfort-table"></table></div>
     </div>
     <div class="note" style="margin-top:14px" id="comfort-note"></div>
+  </section>
+
+  <!-- -------------------------------------------------------------- KPIs -->
+  <section class="section hidden" id="kpi-section">
+    <div class="section-head"><span class="caption">Where the energy went</span></div>
+    <div class="tiles" id="kpi-tiles"></div>
   </section>
 
   <!-- ------------------------------------------------------ agent detail -->
@@ -158,6 +152,17 @@
   <section class="section hidden" id="artifact-section">
     <div class="section-head"><span class="caption">Deliverables from this run</span></div>
     <div class="list" id="artifact-list"></div>
+  </section>
+
+  <!-- ------------------------------------------------------------- runs -->
+  <section class="section" id="runs-section">
+    <div class="section-head">
+      <span class="caption">Completed runs</span>
+      <span class="footnote" id="runs-count"></span>
+    </div>
+    <div class="list" id="runs-list">
+      <div class="empty">No runs yet.</div>
+    </div>
   </section>
 
   <footer class="section footnote" style="border-top:0.5px solid var(--separator);padding-top:18px">
